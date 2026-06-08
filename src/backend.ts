@@ -66,7 +66,7 @@ export function createNtfyBackend(
 ): NotificationBackend {
   return {
     async send(context: NotificationContext): Promise<void> {
-      const url = `${config.server}/${config.topic}`;
+      const url = `${config.server.replace(/\/+$/, "")}/${config.topic}`;
 
       const title = await resolveContent(
         config.title,
