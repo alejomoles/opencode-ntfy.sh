@@ -90,6 +90,11 @@
           "pattern": "^P",
           "description": "ISO 8601 duration for the HTTP request timeout when calling the ntfy.sh server (e.g., 'PT10S' for 10 seconds)."
         },
+        "allowInsecure": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow insecure TLS connections to the ntfy.sh server (e.g., self-signed certificates)."
+        },
         "title": {
           "type": "object",
           "description": "Title configuration per event type. Each key is an event type and the value specifies how to produce the notification title.",

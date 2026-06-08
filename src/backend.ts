@@ -5,6 +5,7 @@ import type {
   NotificationEvent,
 } from "opencode-notification-sdk";
 import { renderTemplate, execTemplate } from "opencode-notification-sdk";
+import { Agent } from "node:https";
 import type {
   NtfyBackendConfig,
   ContentTemplate,
@@ -93,10 +94,16 @@ export function createNtfyBackend(
           : {}),
       };
 
+      const dispatcher = config.allowInsecure
+        ? new Agent({ rejectUnauthorized: false })
+        : undefined;
+
       const fetchOptions: RequestInit = {
         method: "POST",
         headers,
         body: message,
+        // @ts-ignore
+        dispatcher,
         ...(config.fetchTimeout !== undefined
           ? { signal: AbortSignal.timeout(config.fetchTimeout) }
           : {}),

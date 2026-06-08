@@ -25,6 +25,7 @@ export interface NtfyBackendConfig {
   priority: string;
   iconUrl: string;
   fetchTimeout?: number;
+  allowInsecure?: boolean;
   title?: ContentTemplateMap;
   message?: ContentTemplateMap;
 }
@@ -86,6 +87,9 @@ export function parseNtfyBackendConfig(
   // Optional: token
   const token = typeof raw.token === "string" ? raw.token : undefined;
 
+  // Optional: allowInsecure
+  const allowInsecure = raw.allowInsecure === true;
+
   // Optional: priority
   const priority =
     typeof raw.priority === "string" ? raw.priority : "default";
@@ -124,7 +128,7 @@ export function parseNtfyBackendConfig(
     ? parseContentTemplateMap(raw.message, "message")
     : undefined;
 
-  return { topic, server, token, priority, iconUrl, fetchTimeout, title, message };
+  return { topic, server, token, priority, iconUrl, fetchTimeout, allowInsecure, title, message };
 }
 
 function isValidEvent(key: string): key is NotificationEvent {

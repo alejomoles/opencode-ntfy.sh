@@ -153,6 +153,21 @@ describe("parseNtfyBackendConfig", () => {
     ).toThrow("Invalid ISO 8601 duration");
   });
 
+  it("should default allowInsecure to false", () => {
+    const config = parseNtfyBackendConfig({ topic: "test" });
+    expect(config.allowInsecure).toBe(false);
+  });
+
+  it("should parse allowInsecure as true", () => {
+    const config = parseNtfyBackendConfig({ topic: "test", allowInsecure: true });
+    expect(config.allowInsecure).toBe(true);
+  });
+
+  it("should treat non-boolean allowInsecure as false", () => {
+    const config = parseNtfyBackendConfig({ topic: "test", allowInsecure: "true" });
+    expect(config.allowInsecure).toBe(false);
+  });
+
   describe("title templates", () => {
     it("should parse a value template for session.idle", () => {
       const config = parseNtfyBackendConfig({
@@ -319,6 +334,7 @@ describe("JSON Schema", () => {
     expect(backendProps).toContain("priority");
     expect(backendProps).toContain("icon");
     expect(backendProps).toContain("fetchTimeout");
+    expect(backendProps).toContain("allowInsecure");
     expect(backendProps).toContain("title");
     expect(backendProps).toContain("message");
   });
