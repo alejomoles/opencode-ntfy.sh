@@ -5,7 +5,7 @@ import type {
   NotificationEvent,
 } from "opencode-notification-sdk";
 import { renderTemplate, execTemplate } from "opencode-notification-sdk";
-import { Agent } from "node:https";
+import { request as httpsRequest } from "node:https";
 import type {
   NtfyBackendConfig,
   ContentTemplate,
@@ -94,28 +94,70 @@ export function createNtfyBackend(
           : {}),
       };
 
-      const dispatcher = config.allowInsecure
-        ? new Agent({ rejectUnauthorized: false })
-        : undefined;
+      if (config.allowInsecure) {
+        // Node.js fetch() ignores the dispatcher option, so we must use
+        // https.request directly when TLS verification needs to be disabled.
+        await sendViaHttps(url, headers, message, config.fetchTimeout);
+      } else {
+        const fetchOptions: RequestInit = {
+          method: "POST",
+          headers,
+          body: message,
+          ...(config.fetchTimeout !== undefined
+            ? { signal: AbortSignal.timeout(config.fetchTimeout) }
+            : {}),
+        };
 
-      const fetchOptions: RequestInit = {
-        method: "POST",
-        headers,
-        body: message,
-        // @ts-ignore
-        dispatcher,
-        ...(config.fetchTimeout !== undefined
-          ? { signal: AbortSignal.timeout(config.fetchTimeout) }
-          : {}),
-      };
+        const response = await fetch(url, fetchOptions);
 
-      const response = await fetch(url, fetchOptions);
-
-      if (!response.ok) {
-        throw new Error(
-          `ntfy request failed: ${response.status} ${response.statusText}`
-        );
+        if (!response.ok) {
+          throw new Error(
+            `ntfy request failed: ${response.status} ${response.statusText}`
+          );
+        }
       }
     },
   };
+}
+
+function sendViaHttps(
+  url: string,
+  headers: Record<string, string>,
+  body: string,
+  timeoutMs?: number
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const parsed = new URL(url);
+    const req = httpsRequest(
+      {
+        hostname: parsed.hostname,
+        port: parsed.port ? parseInt(parsed.port, 10) : 443,
+        path: parsed.pathname,
+        method: "POST",
+        headers,
+        rejectUnauthorized: false,
+        timeout: timeoutMs,
+      },
+      (res) => {
+        if (res.statusCode !== undefined && res.statusCode >= 200 && res.statusCode < 300) {
+          resolve();
+        } else {
+          reject(
+            new Error(
+              `ntfy request failed: ${res.statusCode ?? "unknown"} ${res.statusMessage ?? ""}`
+            )
+          );
+        }
+      }
+    );
+
+    req.on("error", reject);
+    req.on("timeout", () => {
+      req.destroy();
+      reject(new Error("ntfy request timed out"));
+    });
+
+    req.write(body);
+    req.end();
+  });
 }
